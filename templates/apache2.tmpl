@@ -1,0 +1,72 @@
+AllowEncodedSlashes NoDecode
+ProxyPreserveHost On
+
+
+{{ if eq (env "DEFAULT_REDIRECT_TO_TOPDOMAIN") "true" }}
+<VirtualHost *:80>
+
+    Redirect / https://{{ env "TOPDOMAIN" }}/
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+</VirtualHost>
+{{ end }}
+
+
+{{/* Only keep containers with webproxy labels */}}
+{{ $webproxyfiedContainers := list }}
+{{ range $container := $ }}
+{{ range $label, $value := $container.Labels }}
+{{ if hasPrefix "webproxy." $label }}
+{{ $webproxyfiedContainers = append $webproxyfiedContainers $container }}
+{{ break }}
+{{ end }}
+{{ end }}
+{{ end }}
+
+{{ range $subdomain, $containers := groupByLabelWithDefault $webproxyfiedContainers "webproxy.subdomain" "" }}
+<VirtualHost *:80>
+
+    {{ if eq $subdomain "" }}
+    ServerName {{ env "TOPDOMAIN" }}
+    {{ else }}
+    ServerName {{ $subdomain }}.{{ env "TOPDOMAIN" }}
+    {{ end }}
+
+    {{ with index ($containers | first).Labels "webproxy.serveradmin" }}
+    ServerAdmin {{ . }}
+    {{ end }}
+
+    {{ range $index, $container := $containers }}
+    {{ $path := index $container.Labels "webproxy.path" | default "" }}
+    <Location "/{{ $path }}">
+        {{ $address := where $container.Addresses "Port" (index $container.Labels "webproxy.port") | default (sortObjectsByKeysAsc $container.Addresses "Port") | first }}
+        {{ $port := $address.HostPort }}
+        {{/* $ip := $address.HostIP */}}
+        {{ $ip := "127.0.0.1" }}
+
+        {{ if index $container.Labels "webproxy.websockets" }}
+        RewriteEngine On
+        RewriteCond %{HTTP:Upgrade} websocket [NC]
+        RewriteCond %{HTTP:Connection} Upgrade [NC]
+        RewriteRule (.*) ws://{{ $ip }}:{{ $port }}/$1 [P,L]
+        {{ end }}
+
+        ProxyPass http://{{ $ip }}:{{ $port }}/ nocanon
+        ProxyPassReverse http://{{ $ip }}:{{ $port }}/
+
+        {{ with index $container.Labels "webproxy.errors" }}
+        {{ range $error := (. | split ",") }}
+        ErrorDocument {{ $error | split " " | first }} {{ $error | split " " | last }}
+        {{ end }}
+        {{ end }}
+
+    </Location>
+    {{ end }}
+
+    ErrorLog ${APACHE_LOG_DIR}/error.log
+    CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+</VirtualHost>
+{{ end }}

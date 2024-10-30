@@ -1,0 +1,13 @@
+services:
+  config-generator:
+    image: nginxproxy/docker-gen
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - ./templates:/etc/docker-gen/templates:ro
+      - /etc/apache2/sites-enabled/:/etc/docker-gen/results/:rw
+      - ./config.toml:/etc/docker-gen/config.toml:ro
+    environment:
+      - TOPDOMAIN=$TOPDOMAIN
+      - DEFAULT_REDIRECT_TO_TOPDOMAIN=$DEFAULT_REDIRECT_TO_TOPDOMAIN
+    command:
+      -config /etc/docker-gen/config.toml

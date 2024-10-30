@@ -1,0 +1,8 @@
+[[config]]
+template = "/etc/docker-gen/templates/apache2.tmpl"
+dest = "/etc/docker-gen/results/web-proxy.generated.conf"
+onlyexposed = true
+watch = true
+
+[config.NotifyContainers]
+apache2 = 1  # 1 is a signal number to be sent; here SIGHUP
