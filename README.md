@@ -2,7 +2,9 @@
 
 This is a apache2 config generator for docker containers.
 
-Environment variable `HOSTNAME` must be set to the top domain name. For example, you can use `HOSTNAME=example.com`.
+Environment variable `TOPDOMAIN` must be set.
+For example, you can use `TOPDOMAIN=example.com`.
+By default, it will use `localhost` as top domain.
 
 It's based on container labels :
 

@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    parameters {
+        string(name: 'TOPDOMAIN', description: 'Top level domain')
+    }
+
     stages {
         stage('Build') {
             steps {

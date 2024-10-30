@@ -1,3 +1,6 @@
+{{ $topdomain := env "TOPDOMAIN" | default "localhost" }}
+
+
 AllowEncodedSlashes NoDecode
 ProxyPreserveHost On
 
@@ -5,7 +8,7 @@ ProxyPreserveHost On
 {{ if eq (env "DEFAULT_REDIRECT_TO_TOPDOMAIN") "true" }}
 <VirtualHost *:80>
 
-    Redirect / https://{{ env "TOPDOMAIN" }}/
+    Redirect / https://{{ $topdomain }}/
 
     ErrorLog ${APACHE_LOG_DIR}/error.log
     CustomLog ${APACHE_LOG_DIR}/access.log combined
@@ -29,9 +32,9 @@ ProxyPreserveHost On
 <VirtualHost *:80>
 
     {{ if eq $subdomain "" }}
-    ServerName {{ env "TOPDOMAIN" }}
+    ServerName {{ $topdomain }}
     {{ else }}
-    ServerName {{ $subdomain }}.{{ env "TOPDOMAIN" }}
+    ServerName {{ $subdomain }}.{{ $topdomain }}
     {{ end }}
 
     {{ with index ($containers | first).Labels "webproxy.serveradmin" }}
