@@ -1,13 +1,21 @@
 services:
   config-generator:
-    image: nginxproxy/docker-gen
+    build: ./config-generator
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
-      - ./templates:/etc/docker-gen/templates:ro
-      - /etc/apache2/sites-enabled/:/etc/docker-gen/results/:rw
-      - ./config.toml:/etc/docker-gen/config.toml:ro
+      - httpd-config:/etc/docker-gen/results:rw
     environment:
       - TOPDOMAIN=$TOPDOMAIN
       - DEFAULT_REDIRECT_TO_TOPDOMAIN=$DEFAULT_REDIRECT_TO_TOPDOMAIN
-    command:
-      -config /etc/docker-gen/config.toml
+    restart: always
+  http-daemon:
+    build: ./http-daemon
+    volumes:
+      - httpd-config:/usr/local/apache2/conf/web-proxy:rw
+      - ./html:/usr/local/apache2/htdocs:ro
+    ports:
+      - 80:80
+    restart: always
+volumes:
+  httpd-config:
+    driver: local

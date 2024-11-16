@@ -1,4 +1,10 @@
+LoadModule proxy_module modules/mod_proxy.so
+LoadModule proxy_http_module modules/mod_proxy_http.so
+LoadModule rewrite_module modules/mod_rewrite.so
+
+
 {{ $topdomain := env "TOPDOMAIN" | default "localhost" }}
+{{ $redirectProtocol := eq (env "REDIRECT_TO_SECURE") "true" | ternary "https" "http" }}
 
 
 AllowEncodedSlashes NoDecode
@@ -8,10 +14,10 @@ ProxyPreserveHost On
 {{ if eq (env "DEFAULT_REDIRECT_TO_TOPDOMAIN") "true" }}
 <VirtualHost *:80>
 
-    Redirect / https://{{ $topdomain }}/
+    Redirect / {{ $redirectProtocol }}://{{ $topdomain }}/
 
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
+    #ErrorLog ${APACHE_LOG_DIR}/error.log
+    #CustomLog ${APACHE_LOG_DIR}/access.log combined
 
 </VirtualHost>
 {{ end }}
@@ -44,10 +50,16 @@ ProxyPreserveHost On
     {{ range $index, $container := $containers }}
     {{ $path := index $container.Labels "webproxy.path" | default "" }}
     <Location "/{{ $path }}">
+    {{ if not (eq $path "") }}
+        RewriteEngine On
+        RewriteCond %{REQUEST_URI} ^/{{ $path }}$ 
+        RewriteRule ^(.*)$ /{{ $path }}/ [R=301,L]
+    </Location>
+    <Location "/{{ $path }}/">
+    {{ end }}
         {{ $address := where $container.Addresses "Port" (index $container.Labels "webproxy.port") | default (sortObjectsByKeysAsc $container.Addresses "Port") | first }}
         {{ $port := $address.HostPort }}
-        {{/* $ip := $address.HostIP */}}
-        {{ $ip := "127.0.0.1" }}
+        {{ $ip := ($container.Networks | first).Gateway }}
 
         {{ if index $container.Labels "webproxy.websockets" }}
         RewriteEngine On
@@ -68,8 +80,8 @@ ProxyPreserveHost On
     </Location>
     {{ end }}
 
-    ErrorLog ${APACHE_LOG_DIR}/error.log
-    CustomLog ${APACHE_LOG_DIR}/access.log combined
+    #ErrorLog ${APACHE_LOG_DIR}/error.log
+    #CustomLog ${APACHE_LOG_DIR}/access.log combined
 
 </VirtualHost>
 {{ end }}
