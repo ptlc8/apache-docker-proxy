@@ -11,10 +11,10 @@ services:
   http-daemon:
     build: ./http-daemon
     volumes:
-      - httpd-config:/usr/local/apache2/conf/web-proxy:rw
+      - httpd-config:/usr/local/apache2/web-proxy:ro
       - ./html:/usr/local/apache2/htdocs:ro
     ports:
-      - 80:80
+      - ${HTTP_PORT:-80}:80
     restart: always
 volumes:
   httpd-config:

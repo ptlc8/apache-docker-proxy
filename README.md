@@ -21,6 +21,7 @@ If no label starting with `webproxy.` is defined, the container will not be prox
 
 Also `DEFAULT_REDIRECT_TO_TOPDOMAIN` environment variable can be set to `true` to redirect all unknown subdomains to the top domain.
 And `REDIRECT_TO_SECURE` environment variable can be set to `true` to redirect all http requests to https.
+And `HTTP_PORT` environment variable can be set to the port to listen to http requests (default is 80).
 
 See [docker-gen](https://github.com/nginx-proxy/docker-gen/) for more explanations.
 

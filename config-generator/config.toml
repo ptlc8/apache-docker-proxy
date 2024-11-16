@@ -3,6 +3,7 @@ template = "/etc/docker-gen/templates/apache2.tmpl"
 dest = "/etc/docker-gen/results/web-proxy.generated.conf"
 onlyexposed = true
 watch = true
+NotifyContainersSignal = 1 # 1 is a signal number to be sent; here SIGHUP
 
-[config.NotifyContainers]
-apache-docker-proxy_http-daemon_1 = 1  # 1 is a signal number to be sent; here SIGHUP
+[config.NotifyContainersFilter]
+label = ["com.docker.compose.service=http-daemon"]
