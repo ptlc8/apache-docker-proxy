@@ -23,16 +23,28 @@ ProxyPreserveHost On
 {{ end }}
 
 
+{{/* Only keep containers with exposed port */}}
+{{ $exposedContainers := list }}
+{{ range $container := $ }}
+    {{ range $address := $container.Addresses }}
+        {{ if $address.HostPort }}
+            {{ $exposedContainers = append $exposedContainers $container }}
+            {{ break }}
+        {{ end }}
+    {{ end }}
+{{ end }}
+
 {{/* Only keep containers with webproxy labels */}}
 {{ $webproxyfiedContainers := list }}
-{{ range $container := $ }}
-{{ range $label, $value := $container.Labels }}
-{{ if hasPrefix "webproxy." $label }}
-{{ $webproxyfiedContainers = append $webproxyfiedContainers $container }}
-{{ break }}
+{{ range $container := $exposedContainers }}
+    {{ range $label, $value := $container.Labels }}
+        {{ if hasPrefix "webproxy." $label }}
+            {{ $webproxyfiedContainers = append $webproxyfiedContainers $container }}
+            {{ break }}
+        {{ end }}
+    {{ end }}
 {{ end }}
-{{ end }}
-{{ end }}
+
 
 {{ range $subdomain, $containers := groupByLabelWithDefault $webproxyfiedContainers "webproxy.subdomain" "" }}
 <VirtualHost *:80>
@@ -53,7 +65,7 @@ ProxyPreserveHost On
     <Location "/{{ $path }}">
     {{ if not (eq $path "") }}
         RewriteEngine On
-        RewriteCond %{REQUEST_URI} ^/{{ $path }}$ 
+        RewriteCond %{REQUEST_URI} ^/{{ $path }}$
         RewriteRule ^(.*)$ /{{ $path }}/ [R=301,L]
     </Location>
     <Location "/{{ $path }}/">
