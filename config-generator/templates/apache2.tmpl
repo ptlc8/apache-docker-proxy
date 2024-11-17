@@ -48,6 +48,7 @@ ProxyPreserveHost On
     {{ end }}
 
     {{ range $index, $container := $containers }}
+    # Container {{ $container.Name }}
     {{ $path := index $container.Labels "webproxy.path" | default "" }}
     <Location "/{{ $path }}">
     {{ if not (eq $path "") }}
@@ -72,8 +73,8 @@ ProxyPreserveHost On
         ProxyPassReverse http://{{ $ip }}:{{ $port }}/
 
         {{ with index $container.Labels "webproxy.errors" }}
-        {{ range $error := (. | split ",") }}
-        ErrorDocument {{ $error | split " " | first }} {{ $error | split " " | last }}
+        {{ range $error := (split . ",") }}
+        ErrorDocument {{ split $error " " | first }} {{ split $error " " | last }}
         {{ end }}
         {{ end }}
 
