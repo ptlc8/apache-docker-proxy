@@ -46,7 +46,12 @@ ProxyPreserveHost On
 {{ end }}
 
 
+{{/* Group containers by subdomain and sort them by path */}}
 {{ range $subdomain, $containers := groupByLabelWithDefault $webproxyfiedContainers "webproxy.subdomain" "" }}
+{{ $containersByPath := dict }}
+{{ range $container := $containers }}
+{{ $containersByPath = set $containersByPath (index $container.Labels "webproxy.path" | default "") $container }}
+{{ end }}
 <VirtualHost *:80>
 
     {{ if eq $subdomain "" }}
@@ -59,9 +64,8 @@ ProxyPreserveHost On
     ServerAdmin {{ . }}
     {{ end }}
 
-    {{ range $index, $container := $containers }}
+    {{ range $path, $container := $containersByPath }}
     # Container {{ $container.Name }}
-    {{ $path := index $container.Labels "webproxy.path" | default "" }}
     <Location "/{{ $path }}">
     {{ if not (eq $path "") }}
         RewriteEngine On
@@ -89,7 +93,6 @@ ProxyPreserveHost On
         ErrorDocument {{ split $error " " | first }} {{ split $error " " | last }}
         {{ end }}
         {{ end }}
-
     </Location>
     {{ end }}
 
