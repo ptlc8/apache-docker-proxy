@@ -7,6 +7,9 @@ LoadModule rewrite_module modules/mod_rewrite.so
 {{ $redirectProtocol := eq (env "REDIRECT_TO_SECURE") "true" | ternary "https" "http" }}
 
 
+{{ with env "CUSTOM_CONFIG" }}
+{{ . }}
+{{ end }}
 AllowEncodedSlashes NoDecode
 ProxyPreserveHost On
 
@@ -92,6 +95,10 @@ ProxyPreserveHost On
         {{ range $error := (split . ",") }}
         ErrorDocument {{ split $error " " | first }} {{ split $error " " | last }}
         {{ end }}
+        {{ end }}
+
+        {{ with index $container.Labels "webproxy.custom" }}
+        {{ . }}
         {{ end }}
     </Location>
     {{ end }}
