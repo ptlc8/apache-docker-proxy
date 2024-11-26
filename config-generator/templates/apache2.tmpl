@@ -76,6 +76,7 @@ ProxyPreserveHost On
         RewriteRule ^(.*)$ /{{ $path }}/ [R=301,L]
     </Location>
     <Location "/{{ $path }}/">
+        Header edit Location ^(/.*)$ "/{{ $path }}$1"
     {{ end }}
         {{ $address := where $container.Addresses "Port" (index $container.Labels "webproxy.port") | default (sortObjectsByKeysAsc $container.Addresses "Port") | first }}
         {{ $port := $address.HostPort }}
