@@ -6,9 +6,10 @@ services:
       - httpd-config:/etc/docker-gen/results:rw
     environment:
       - TOPDOMAIN=$TOPDOMAIN
-      - DEFAULT_REDIRECT_TO_TOPDOMAIN=$DEFAULT_REDIRECT_TO_TOPDOMAIN
-      - REDIRECT_TO_SECURE=$REDIRECT_TO_SECURE
-      - CUSTOM_CONFIG=$CUSTOM_CONFIG
+      - DEFAULT_REDIRECT_TO_TOPDOMAIN=${DEFAULT_REDIRECT_TO_TOPDOMAIN:-}
+      - REDIRECT_TO_SECURE=${REDIRECT_TO_SECURE:-}
+      - IGNORE_PATHS=${IGNORE_PATHS:-}
+      - CUSTOM_CONFIG=${CUSTOM_CONFIG:-}
     restart: always
   http-daemon:
     build: ./http-daemon

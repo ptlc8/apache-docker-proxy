@@ -93,7 +93,7 @@ ProxyPreserveHost On
 
         {{ with index $container.Labels "webproxy.errors" }}
         {{ range $error := (split . ",") }}
-        ErrorDocument {{ split $error " " | first }} {{ split $error " " | last }}
+        ErrorDocument {{ split $error ":" | first }} {{ index (split $error ":") 1 }}
         {{ end }}
         {{ end }}
 
@@ -101,6 +101,17 @@ ProxyPreserveHost On
         {{ . }}
         {{ end }}
     </Location>
+    {{ end }}
+
+    {{ if eq $subdomain "" }}
+    {{ with env "IGNORE_PATHS" }}
+    # Paths to ignore
+    {{ range $ignore_path := (split . ",") }}
+    <Location "/{{ $ignore_path }}">
+        ProxyPass !
+    </Location>
+    {{ end }}
+    {{ end }}
     {{ end }}
 
     #ErrorLog ${APACHE_LOG_DIR}/error.log
