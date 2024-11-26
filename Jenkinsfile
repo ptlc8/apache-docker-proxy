@@ -2,10 +2,11 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'TOPDOMAIN', description: 'Top level domain')
-        string(name: 'DEFAULT_REDIRECT_TO_TOPDOMAIN', description: 'Redirect other domains to top domain', defaultValue: 'false')
-        string(name: 'REDIRECT_TO_SECURE', description: 'Redirect to secure protocol', defaultValue: 'false')
-        string(name: 'HTTP_PORT', description: 'Port to listen on', defaultValue: '80')
+        string(name: 'TOPDOMAIN', defaultValue: params.TOPDOMAIN ?: null, description: 'Top level domain')
+        string(name: 'HTTP_PORT', defaultValue: params.HTTP_PORT ?: null, description: 'Port to listen on')
+        string(name: 'HTDOCS_DIRECTORY', defaultValue: params.HTDOCS_DIRECTORY ?: null, description: 'Directory to serve files from')
+        string(name: 'DEFAULT_REDIRECT_TO_TOPDOMAIN', defaultValue: params.DEFAULT_REDIRECT_TO_TOPDOMAIN ?: null, description: 'Redirect other domains to top domain')
+        string(name: 'REDIRECT_TO_SECURE', defaultValue: params.REDIRECT_TO_SECURE ?: null, description: 'Redirect to secure protocol')
     }
 
     stages {

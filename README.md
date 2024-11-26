@@ -2,10 +2,6 @@
 
 This is a apache2 config generator for docker containers.
 
-Environment variable `TOPDOMAIN` must be set.
-For example, you can use `TOPDOMAIN=example.com`.
-By default, it will use `localhost` as top domain.
-
 It's based on container labels :
 
 | Label                | Description                            | Default value | Example                       |
@@ -19,9 +15,15 @@ It's based on container labels :
 
 If no label starting with `webproxy.` is defined, the container will not be proxied.
 
-Also `DEFAULT_REDIRECT_TO_TOPDOMAIN` environment variable can be set to `true` to redirect all unknown subdomains to the top domain.
-And `REDIRECT_TO_SECURE` environment variable can be set to `true` to redirect all http requests to https.
-And `HTTP_PORT` environment variable can be set to the port to listen to http requests (default is 80).
+Also some environment variables can be set and/or put in a `.env` file :
+
+| Environment variable          | Description                                          | Default value | Example         |
+|-------------------------------|------------------------------------------------------|---------------|-----------------|
+| TOPDOMAIN                     | the top domain to use                                | `localhost`   | `example.com`   |
+| HTTP_PORT                     | the port to listen to http requests                  | `80`          | `8080`          |
+| HTDOCS_DIRECTORY              | the directory to serve default static files          | `./htdocs`    | `/var/www/html` |
+| DEFAULT_REDIRECT_TO_TOPDOMAIN | if redirect all unknown subdomains to the top domain | `false`       | `true`          |
+| REDIRECT_TO_SECURE            | if redirect all http requests to https               | `false`       | `true`          |
 
 See [docker-gen](https://github.com/nginx-proxy/docker-gen/) for more explanations.
 
