@@ -8,6 +8,7 @@ pipeline {
         string(name: 'DEFAULT_REDIRECT_TO_TOPDOMAIN', defaultValue: params.DEFAULT_REDIRECT_TO_TOPDOMAIN ?: null, description: 'Redirect other domains to top domain')
         string(name: 'REDIRECT_TO_SECURE', defaultValue: params.REDIRECT_TO_SECURE ?: null, description: 'Redirect to secure protocol')
         string(name: 'IGNORE_PATHS', defaultValue: params.IGNORE_PATHS ?: null, description: 'Paths to ignore when proxying on top domain')
+        text(name: 'CUSTOM_CONFIG', defaultValue: params.CUSTOM_CONFIG ?: null, description: 'Custom Apache HTTPd configuration')
     }
 
     stages {
