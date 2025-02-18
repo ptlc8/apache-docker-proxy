@@ -1,5 +1,8 @@
 LoadModule proxy_module modules/mod_proxy.so
 LoadModule proxy_http_module modules/mod_proxy_http.so
+LoadModule slotmem_shm_module modules/mod_slotmem_shm.so
+LoadModule lbmethod_byrequests_module modules/mod_lbmethod_byrequests.so
+LoadModule proxy_balancer_module modules/mod_proxy_balancer.so
 LoadModule rewrite_module modules/mod_rewrite.so
 
 
@@ -49,12 +52,20 @@ ProxyPreserveHost On
 {{ end }}
 
 
-{{/* Group containers by subdomain and sort them by path */}}
+{{/* Group containers by subdomain */}}
 {{ range $subdomain, $containers := groupByLabelWithDefault $webproxyfiedContainers "webproxy.subdomain" "" }}
-{{ $containersByPath := dict }}
-{{ range $container := $containers }}
-{{ $containersByPath = set $containersByPath (index $container.Labels "webproxy.path" | default "") $container }}
-{{ end }}
+    {{/* Group containers by path (and sort them by path) */}}
+    {{ $containersByPath := dict }}
+    {{ range $container := $containers }}
+        {{ $path := index $container.Labels "webproxy.path" | default "" }}
+        {{ if not (index $containersByPath $path) }}
+            {{ $containersByPath = set $containersByPath $path (list $container) }}
+        {{ else }}
+            {{ $containersByPath = set $containersByPath $path (append (index $containersByPath $path) $container) }}
+        {{ end }}
+    {{ end }}
+
+    {{/* Create a host for each subdomain */}}
 <VirtualHost *:80>
 
     {{ if eq $subdomain "" }}
@@ -67,56 +78,79 @@ ProxyPreserveHost On
     ServerAdmin {{ . }}
     {{ end }}
 
-    {{ range $path, $container := $containersByPath }}
-    # Container {{ $container.Name }}
+    {{ range $path, $containers := $containersByPath }}
+        {{/* Create a proxy for each path */}}
+    <Proxy "balancer://http-{{ $path }}">
+        {{ $websockets := "" }}
+        {{ $affinityCookie := "" }}
+        {{ $custom := "" }}
+        {{ range $container := $containers }}
+        # Container {{ $container.Name }}
+            {{ $address := where $container.Addresses "Port" (index $container.Labels "webproxy.port") | default (sortObjectsByKeysAsc $container.Addresses "Port") | first }}
+            {{ $port := $address.HostPort }}
+            {{ $ip := ($container.Networks | first).Gateway }}
+        BalancerMember "http://{{ $ip }}:{{ $port }}"
+            {{ $websockets = index $container.Labels "webproxy.websockets" | default $websockets }}
+            {{ $affinityCookie = index $container.Labels "webproxy.affinitycookie" | default $affinityCookie }}
+            {{ $custom = index $container.Labels "webproxy.custom" | default $custom }}
+        {{ end }}
+        {{ with $affinityCookie }}
+        ProxySet stickysession={{ . }}
+        {{ end }}
+    </Proxy>
+        {{ if $websockets }}
+    <Proxy "balancer://ws-{{ $path }}">
+            {{ range $container := $containers }}
+                {{ if index $container.Labels "webproxy.websockets" }}
+        # Container {{ $container.Name }}
+                    {{ $address := where $container.Addresses "Port" (index $container.Labels "webproxy.port") | default (sortObjectsByKeysAsc $container.Addresses "Port") | first }}
+                    {{ $port := $address.HostPort }}
+                    {{ $ip := ($container.Networks | first).Gateway }}
+        BalancerMember "ws://{{ $ip }}:{{ $port }}"
+                {{ end }}
+            {{ end }}
+    </Proxy>
+        {{ end }}
     <Location "/{{ $path }}">
-    {{ if not (eq $path "") }}
+        {{ if not (eq $path "") }}
         RewriteEngine On
         RewriteCond %{REQUEST_URI} ^/{{ $path }}$
         RewriteRule ^(.*)$ /{{ $path }}/ [R=301,L]
     </Location>
     <Location "/{{ $path }}/">
         Header edit Location ^(/.*)$ "/{{ $path }}$1"
-    {{ end }}
-        {{ $address := where $container.Addresses "Port" (index $container.Labels "webproxy.port") | default (sortObjectsByKeysAsc $container.Addresses "Port") | first }}
-        {{ $port := $address.HostPort }}
-        {{ $ip := ($container.Networks | first).Gateway }}
+        {{ end }}
 
-        {{ if index $container.Labels "webproxy.websockets" }}
+        {{ if $websockets }}
         RewriteEngine On
         RewriteCond %{HTTP:Upgrade} websocket [NC]
         RewriteCond %{HTTP:Connection} Upgrade [NC]
-        RewriteRule (.*) ws://{{ $ip }}:{{ $port }}/$1 [P,L]
+        RewriteRule (.*) "balancer://ws-{{ $path }}/$1" [P,L]
         {{ end }}
 
-        ProxyPass http://{{ $ip }}:{{ $port }}/ nocanon
-        ProxyPassReverse http://{{ $ip }}:{{ $port }}/
+        ProxyPass "balancer://http-{{ $path }}/" nocanon
+        ProxyPassReverse "balancer://http-{{ $path }}/"
 
-        {{ with index $container.Labels "webproxy.errors" }}
-        {{ range $error := (split . ",") }}
-        ErrorDocument {{ split $error ":" | first }} {{ index (split $error ":") 1 }}
-        {{ end }}
-        {{ end }}
-
-        {{ with index $container.Labels "webproxy.custom" }}
+        {{ with $custom }}
         {{ . }}
         {{ end }}
     </Location>
     {{ end }}
 
     {{ if eq $subdomain "" }}
-    {{ with env "IGNORE_PATHS" }}
+        {{ with env "IGNORE_PATHS" }}
     # Paths to ignore
-    {{ range $ignore_path := (split . ",") }}
+            {{ range $ignore_path := (split . ",") }}
     <Location "/{{ $ignore_path }}">
         ProxyPass !
     </Location>
-    {{ end }}
-    {{ end }}
+            {{ end }}
+        {{ end }}
     {{ end }}
 
     #ErrorLog ${APACHE_LOG_DIR}/error.log
     #CustomLog ${APACHE_LOG_DIR}/access.log combined
 
 </VirtualHost>
+
 {{ end }}

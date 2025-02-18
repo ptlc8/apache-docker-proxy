@@ -4,15 +4,15 @@ This is a apache2 config generator for docker containers.
 
 It's based on container labels :
 
-| Label                | Description                            | Default value | Example                       |
-|----------------------|----------------------------------------|---------------|-------------------------------|
-| webproxy.subdomain   | the subdomain to use (app.example.com) | undefined     | `app`                         |
-| webproxy.path        | the path to use (example.com/app)      | undefined     | `app`                         |
-| webproxy.port        | the internal port to use               | lowest port   | `8080`                        |
-| webproxy.serveradmin | the server admin email                 | undefined     | `test@example.com`            |
-| webproxy.websockets  | if the container use websockets        | `false`       | `true`                        |
-| webproxy.errors      | custom error pages                     | undefined     | `404:/404.html,500:/500.html` |
-| webproxy.custom      | add custom configuration               | undefined     | `Header set Blabla "blabla"`  |
+| Label                   | Description                            | Default value | Example                       |
+|-------------------------|----------------------------------------|---------------|-------------------------------|
+| webproxy.subdomain      | the subdomain to use (app.example.com) | undefined     | `app`                         |
+| webproxy.path           | the path to use (example.com/app)      | undefined     | `app`                         |
+| webproxy.port           | the internal port to use               | lowest port   | `8080`                        |
+| webproxy.serveradmin    | the server admin email                 | undefined     | `test@example.com`            |
+| webproxy.websockets     | if the container use websockets        | `false`       | `true`                        |
+| webproxy.affinitycookie | to keep user on the same server        | undefined     | `PHPSESSID`                   |
+| webproxy.custom         | add custom configuration               | undefined     | `Header set Blabla "blabla"`  |
 
 If no label starting with `webproxy.` is defined, the container will not be proxied.
 
