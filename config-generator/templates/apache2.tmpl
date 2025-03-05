@@ -22,9 +22,6 @@ ProxyPreserveHost On
 
     Redirect / {{ $redirectProtocol }}://{{ $topdomain }}/
 
-    #ErrorLog ${APACHE_LOG_DIR}/error.log
-    #CustomLog ${APACHE_LOG_DIR}/access.log combined
-
 </VirtualHost>
 {{ end }}
 
@@ -122,17 +119,21 @@ ProxyPreserveHost On
         {{ end }}
 
         {{ if $websockets }}
+        ProxyPass "balancer://dummy/"
         RewriteEngine On
-        RewriteCond %{HTTP:Upgrade} websocket [NC]
         RewriteCond %{HTTP:Connection} Upgrade [NC]
-        RewriteRule (.*) "balancer://ws-{{ $path }}/$1" [P,L]
-        {{ end }}
-
+        RewriteCond %{HTTP:Upgrade} websocket [NC]
+        RewriteRule balancer://dummy/(.*) "balancer://ws-{{ $path }}/$1" [P,L]
+        RewriteRule balancer://dummy/(.*) "balancer://http-{{ $path }}/$1" [P,L]
+        ProxyPassReverse "balancer://ws-{{ $path }}/"
+        ProxyPassReverse "balancer://http-{{ $path }}/"
+        {{ else }}
         ProxyPass "balancer://http-{{ $path }}/" nocanon
         ProxyPassReverse "balancer://http-{{ $path }}/"
+        {{ end }}
 
         {{ with $custom }}
-        {{ . }}
+        {{ . | nindent 8 }}
         {{ end }}
     </Location>
     {{ end }}
@@ -147,9 +148,6 @@ ProxyPreserveHost On
             {{ end }}
         {{ end }}
     {{ end }}
-
-    #ErrorLog ${APACHE_LOG_DIR}/error.log
-    #CustomLog ${APACHE_LOG_DIR}/access.log combined
 
 </VirtualHost>
 
